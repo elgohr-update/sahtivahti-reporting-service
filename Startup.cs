@@ -42,10 +42,12 @@ namespace ReportingService
 
             mq.Consume<RecipeActionEvent>("", recipe =>
             {
+                // TODO: map to own events here
                 var a = recipe.Type switch
                 {
-                    "recipe.created" => eventStore.Publish("recipeCreated", new {}),
-                    "recipe.updated" => eventStore.Publish("recipeUpdated", new {}),
+                    "recipe.created" => eventStore.Publish("recipeCreated", recipe),
+                    "recipe.updated" => eventStore.Publish("recipeUpdated", recipe),
+                    "recipe.deleted" => eventStore.Publish("recipeDeleted", recipe),
                     _ => throw new InvalidOperationException("Can't find suitable action")
                 };
 
