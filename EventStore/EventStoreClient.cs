@@ -24,13 +24,7 @@ namespace ReportingService.EventStore
 
         public async Task Publish<T>(string eventType, T eventData)
         {
-            if (_connection == null)
-            {
-                var connString = _config.ConnectionString;
-                _connection = EventStoreConnection.Create(new Uri(connString));
-
-                await _connection.ConnectAsync();
-            }
+            var connection = await CreateConnection();
 
             var jsonContent = JsonConvert.SerializeObject(eventData);
 
@@ -45,7 +39,34 @@ namespace ReportingService.EventStore
                 )
             };
 
-            await _connection.AppendToStreamAsync("recipe-events", ExpectedVersion.Any, data);
+            await connection.AppendToStreamAsync("recipe-events", ExpectedVersion.Any, data);
+        }
+
+        private async Task<IEventStoreConnection> CreateConnection()
+        {
+            if (_connection == null)
+            {
+                var connString = _config.ConnectionString;
+                _connection = EventStoreConnection.Create(GetConnectionString());
+
+                await _connection.ConnectAsync();
+            }
+
+            return _connection;
+        }
+
+        private Uri GetConnectionString()
+        {
+            var builder = new UriBuilder
+            {
+                Scheme = "tcp",
+                Host = _config.Host,
+                UserName = _config.Username,
+                Password = _config.Password,
+                Port = 1113
+            };
+
+            return builder.Uri;
         }
     }
 }

@@ -28,6 +28,7 @@ namespace ReportingService
 
             services.Configure<EventStoreConfig>(_configuration.GetSection("EventStore"));
             services.AddTransient<IEventStore, EventStoreClient>();
+            services.AddTransient<IEventStoreProjections, EventStoreProjections>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMq mq, IEventStore eventStore)
@@ -37,7 +38,6 @@ namespace ReportingService
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseRouting();
             app.UseMvc();
 
             mq.Consume<RecipeActionEvent>("", recipe =>
