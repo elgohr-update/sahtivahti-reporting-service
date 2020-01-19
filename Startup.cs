@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using ReportingService.EventStore;
 using ReportingService.Model;
 using ReportingService.Mq;
@@ -29,6 +31,12 @@ namespace ReportingService
             services.Configure<EventStoreConfig>(_configuration.GetSection("EventStore"));
             services.AddTransient<IEventStore, EventStoreClient>();
             services.AddTransient<IEventStoreProjections, EventStoreProjections>();
+
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented,
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            };
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IMq mq, IEventStore eventStore)
@@ -40,10 +48,10 @@ namespace ReportingService
 
             app.UseMvc();
 
-            mq.Consume<RecipeActionEvent>("", recipe =>
+            mq.Consume<RecipeActionEvent>("recipe.*", (recipe, routingKey) =>
             {
                 // TODO: map to own events here
-                var a = recipe.Type switch
+                var a = routingKey switch
                 {
                     "recipe.created" => eventStore.Publish("recipeCreated", recipe),
                     "recipe.updated" => eventStore.Publish("recipeUpdated", recipe),

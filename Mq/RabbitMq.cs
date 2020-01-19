@@ -21,7 +21,7 @@ namespace ReportingService.Mq
             _config = config.Value;
         }
 
-        public void Consume<T>(string routingKey, Func<T, bool> onReceive)
+        public void Consume<T>(string routingKey, Func<T, string, bool> onReceive)
         {
             if (_connection == null)
             {
@@ -30,7 +30,7 @@ namespace ReportingService.Mq
                 _channel = _connection.CreateModel();
             }
 
-            var exchangeName = "sahtivahti.recipes.fanout";
+            var exchangeName = "sahtivahti.fanout";
             _channel.ExchangeDeclare(exchangeName, ExchangeType.Fanout, true);
 
             var queueName = _channel.QueueDeclare().QueueName;
@@ -42,12 +42,10 @@ namespace ReportingService.Mq
 
             var consumer = new EventingBasicConsumer(_channel);
 
-            consumer.Received += (model, ea) =>
-            {
-                onReceive(
-                    JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(ea.Body))
-                );
-            };
+            consumer.Received += (_, ea) => onReceive(
+                JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(ea.Body)),
+                ea.RoutingKey
+            );
 
             _channel.BasicConsume(queueName, true, consumer);
         }
